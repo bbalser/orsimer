@@ -21,7 +21,8 @@ defmodule Orsimer.MixProject do
     [
       {:protobuf, "~> 0.7.1"},
       {:varint, "~> 1.3"},
-      {:placebo, "~> 2.0.0-rc.2", only: [:dev, :test]}
+      {:placebo, "~> 2.0.0-rc.2", only: [:dev, :test]},
+      {:checkov, "~> 1.0", only: [:dev, :test]}
     ]
   end
 end
