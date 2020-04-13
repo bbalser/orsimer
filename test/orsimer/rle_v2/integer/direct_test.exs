@@ -1,10 +1,10 @@
-defmodule Orsimer.RLE.Integer.DirectTest do
+defmodule Orsimer.RLEv2.Integer.DirectTest do
   use ExUnit.Case
 
   describe "encode" do
     test "encodes unsigned integers in direct encoding" do
       integers = [23713, 43806, 57005, 48879]
-      output = Orsimer.RLE.Integer.Direct.encode(integers)
+      output = Orsimer.RLEv2.Integer.Direct.encode(integers)
 
       <<encoding::size(2),
         width::size(5),
@@ -27,7 +27,7 @@ defmodule Orsimer.RLE.Integer.DirectTest do
 
     test "encodes signed integers with zigzab algorithm" do
       integers = [-23713, 43806, -57005, 48879]
-      output = Orsimer.RLE.Integer.Direct.encode(integers, true)
+      output = Orsimer.RLEv2.Integer.Direct.encode(integers, true)
 
       <<encoding::size(2),
         width::size(5),
@@ -50,18 +50,18 @@ defmodule Orsimer.RLE.Integer.DirectTest do
   describe "decode" do
     test "decodes unsigned integers" do
       integers = [23713, 43806, 57005, 48879]
-      encoded = Orsimer.RLE.Integer.Direct.encode(integers)
+      encoded = Orsimer.RLEv2.Integer.Direct.encode(integers)
 
-      decoded = Orsimer.RLE.Integer.Direct.decode(encoded)
+      decoded = Orsimer.RLEv2.Integer.Direct.decode(encoded)
 
       assert integers == decoded
     end
 
     test "decodes signed integers" do
       integers = [23713, -43806, 57005, 48879]
-      encoded = Orsimer.RLE.Integer.Direct.encode(integers, true)
+      encoded = Orsimer.RLEv2.Integer.Direct.encode(integers, true)
 
-      decoded = Orsimer.RLE.Integer.Direct.decode(encoded, true)
+      decoded = Orsimer.RLEv2.Integer.Direct.decode(encoded, true)
 
       assert integers == decoded
     end

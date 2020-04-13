@@ -1,4 +1,4 @@
-defmodule Orsimer.RLE.FiveBit do
+defmodule Orsimer.RLEv2.FiveBit do
 
   @width_to_encoded %{
     0 => 0,

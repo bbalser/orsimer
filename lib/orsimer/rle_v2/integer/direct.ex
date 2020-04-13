@@ -1,4 +1,4 @@
-defmodule Orsimer.RLE.Integer.Direct do
+defmodule Orsimer.RLEv2.Integer.Direct do
   def encode(input, signed? \\ false) do
     integers =
       case signed? do
@@ -7,7 +7,7 @@ defmodule Orsimer.RLE.Integer.Direct do
       end
 
     width = Orsimer.Helper.minimum_bits(integers)
-    encoded_width = Orsimer.RLE.FiveBit.encode(width)
+    encoded_width = Orsimer.RLEv2.FiveBit.encode(width)
 
     length = length(integers) - 1
 
@@ -19,7 +19,7 @@ defmodule Orsimer.RLE.Integer.Direct do
   end
 
   def decode(<<1::size(2), width::size(5), _length::size(9), data::bitstring>>, signed? \\ false) do
-    decoded_width = Orsimer.RLE.FiveBit.decode(width)
+    decoded_width = Orsimer.RLEv2.FiveBit.decode(width)
 
     stream =
       Stream.unfold(data, fn
