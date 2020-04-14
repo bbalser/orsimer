@@ -1,4 +1,9 @@
 defmodule Orsimer do
+
+  def write(_schema, _data) do
+  end
+
+
   def to_bits(binary, list \\ [])
 
   def to_bits(<<>>, list) do

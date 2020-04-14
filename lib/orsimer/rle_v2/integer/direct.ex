@@ -14,7 +14,7 @@ defmodule Orsimer.RLEv2.Integer.Direct do
     header = <<1::size(2), encoded_width::size(5), length::size(9)>>
 
     Enum.reduce(integers, header, fn int, acc ->
-      acc <> <<int::size(width)>>
+      <<acc::bitstring, int::size(width)>>
     end)
   end
 
