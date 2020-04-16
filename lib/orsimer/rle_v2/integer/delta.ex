@@ -1,7 +1,9 @@
 defmodule Orsimer.RLEv2.Integer.Delta do
   def encode(integers, signed? \\ false) do
+    {integers_to_encode, remaining} = Enum.split(integers, 512)
+
     deltas =
-      Enum.chunk_every(integers, 2, 1, :discard)
+      Enum.chunk_every(integers_to_encode, 2, 1, :discard)
       |> Enum.map(fn [a, b] -> b - a end)
 
     width = Orsimer.Helper.minimum_bits(deltas)
@@ -14,34 +16,47 @@ defmodule Orsimer.RLEv2.Integer.Delta do
     base_value = integers |> List.first() |> encode_varint(signed?)
     delta_base = deltas |> List.first() |> encode_varint(true)
 
-    deltas
-    |> Enum.drop(1)
-    |> Enum.reduce(header <> base_value <> delta_base, fn delta, acc ->
-      delta_abs = abs(delta)
-      <<acc::bitstring, delta_abs::size(width)>>
-    end)
+    binary =
+      deltas
+      |> Enum.drop(1)
+      |> Enum.reduce(header <> base_value <> delta_base, fn delta, acc ->
+        delta_abs = abs(delta)
+        <<acc::bitstring, delta_abs::size(width)>>
+      end)
+
+    {Orsimer.Helper.pad_to_binary(binary), remaining}
   end
 
-  def decode(<<3::size(2), width::size(5), _length::size(9), data::bitstring>>, signed? \\ false) do
+  def decode(<<3::size(2), width::size(5), length::size(9), data::binary>>, signed? \\ false) do
     decoded_width = Orsimer.RLEv2.FiveBit.decode(width)
+    length = length + 1
 
     {base_value, rest} = varint(data, signed?)
     {delta_base, rest} = varint(rest, true)
 
+    bytes_to_read = Orsimer.Helper.bit_size_to_byte_size(decoded_width * (length - 2))
+    <<bytes::binary-size(bytes_to_read), remaining::binary>> = rest
+
     sign = if delta_base >= 0, do: 1, else: -1
+    deltas = [delta_base] ++ get_deltas(bytes, decoded_width, length - 2, sign)
 
-    deltas =
-      [delta_base] ++
-        (Stream.unfold(rest, fn
-           <<>> -> nil
-           <<delta::size(decoded_width), remaining::bitstring>> -> {delta * sign, remaining}
-         end)
-         |> Enum.to_list())
+    integers =
+      Enum.reduce(deltas, [base_value], fn delta, [prev | _] = acc ->
+        [prev + delta | acc]
+      end)
+      |> Enum.reverse()
 
-    Enum.reduce(deltas, [base_value], fn delta, [prev | _] = acc ->
-      [prev + delta | acc]
-    end)
-    |> Enum.reverse()
+    {integers, remaining}
+  end
+
+  defp get_deltas(binary, width, count, sign) do
+    {values, _} =
+      Enum.map_reduce(1..count, binary, fn _, acc ->
+        <<delta::size(width), rest::bitstring>> = acc
+        {delta * sign, rest}
+      end)
+
+    values
   end
 
   defp encode_varint(integer, signed?) do

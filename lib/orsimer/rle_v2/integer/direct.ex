@@ -1,8 +1,10 @@
 defmodule Orsimer.RLEv2.Integer.Direct do
   def encode(input, signed? \\ false) do
+    {integers_to_encode, remaining} = Enum.split(input, 512)
+
     integers =
       case signed? do
-        true -> Enum.map(input, &Varint.Zigzag.encode/1)
+        true -> Enum.map(integers_to_encode, &Varint.Zigzag.encode/1)
         false -> input
       end
 
@@ -13,23 +15,30 @@ defmodule Orsimer.RLEv2.Integer.Direct do
 
     header = <<1::size(2), encoded_width::size(5), length::size(9)>>
 
-    Enum.reduce(integers, header, fn int, acc ->
-      <<acc::bitstring, int::size(width)>>
-    end)
+    bits =
+      Enum.reduce(integers, header, fn int, acc ->
+        <<acc::bitstring, int::size(width)>>
+      end)
+
+    {Orsimer.Helper.pad_to_binary(bits), remaining}
   end
 
-  def decode(<<1::size(2), width::size(5), _length::size(9), data::bitstring>>, signed? \\ false) do
+  def decode(<<1::size(2), width::size(5), length::size(9), data::bitstring>>, signed? \\ false) do
     decoded_width = Orsimer.RLEv2.FiveBit.decode(width)
+    length = length + 1
 
-    stream =
-      Stream.unfold(data, fn
-        <<>> -> nil
-        <<value::size(decoded_width), rest::bitstring>> -> {value, rest}
+    bytes_to_read = Orsimer.Helper.bit_size_to_byte_size(decoded_width * length)
+    <<bytes::binary-size(bytes_to_read), remaining::binary>> = data
+
+    {values, _} =
+      Enum.map_reduce(1..length, bytes, fn _, bytes ->
+        <<value::size(decoded_width), rest::bitstring>> = bytes
+        {value, rest}
       end)
 
     case signed? do
-      true -> Enum.map(stream, &Varint.Zigzag.decode/1)
-      false -> Enum.to_list(stream)
+      true -> {Enum.map(values, &Varint.Zigzag.decode/1), remaining}
+      false -> {values, remaining}
     end
   end
 end
