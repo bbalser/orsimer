@@ -4,18 +4,17 @@ defmodule Orsimer.RLEv2.String.Direct do
     lengths = Enum.map(strings, &byte_size/1)
 
     {
-      Orsimer.RLEv2.Integer.Direct.encode(lengths),
+      Orsimer.RLEv2.Integer.encode(lengths),
       Enum.join(strings)
     }
   end
 
   def decode(length_stream, data_stream) do
-    Orsimer.RLEv2.Integer.Direct.decode(length_stream)
-    |> Enum.reduce({data_stream, []}, fn length, {data, buffer} ->
-      <<value::binary-size(length)-unit(8), remaining::binary>> = data
-      {remaining, [value | buffer]}
+    Orsimer.RLEv2.Integer.decode(length_stream)
+    |> Enum.map_reduce(data_stream, fn length, bytes ->
+      <<value::binary-size(length), remaining::binary>> = bytes
+      {value, remaining}
     end)
-    |> elem(1)
-    |> Enum.reverse()
+    |> elem(0)
   end
 end

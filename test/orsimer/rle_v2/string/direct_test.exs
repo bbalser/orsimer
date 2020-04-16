@@ -7,7 +7,7 @@ defmodule Orsimer.RLEv2.String.DirectTest do
 
       {length, data} = Orsimer.RLEv2.String.Direct.encode(strings)
 
-      assert [3, 3, 5, 4, 4] = Orsimer.RLEv2.Integer.Direct.decode(length)
+      assert [3, 3, 5, 4, 4] = Orsimer.RLEv2.Integer.decode(length)
       assert "onetwothreefourfive" = data
     end
   end
