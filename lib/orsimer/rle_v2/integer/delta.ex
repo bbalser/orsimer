@@ -8,45 +8,71 @@ defmodule Orsimer.RLEv2.Integer.Delta do
 
     width = Orsimer.Helper.minimum_bits(deltas)
     encoded_width = Orsimer.RLEv2.FiveBit.encode(width)
-
     length = length(deltas)
 
-    header = <<3::size(2), encoded_width::size(5), length::size(9)>>
-
-    base_value = integers |> List.first() |> encode_varint(signed?)
-    delta_base = deltas |> List.first() |> encode_varint(true)
+    base_value = List.first(integers) |> encode_varint(signed?)
+    delta_base = List.first(deltas) |> encode_varint(true)
 
     binary =
-      deltas
-      |> Enum.drop(1)
-      |> Enum.reduce(header <> base_value <> delta_base, fn delta, acc ->
-        delta_abs = abs(delta)
-        <<acc::bitstring, delta_abs::size(width)>>
-      end)
+      case all_same?(deltas) do
+        true ->
+          build_header(0, length) <> base_value <> delta_base
+
+        false ->
+          deltas
+          |> Enum.drop(1)
+          |> Enum.reduce(
+            build_header(encoded_width, length) <> base_value <> delta_base,
+            fn delta, acc ->
+              delta_abs = abs(delta)
+              <<acc::bitstring, delta_abs::size(width)>>
+            end
+          )
+      end
 
     {Orsimer.Helper.pad_to_binary(binary), remaining}
   end
 
   def decode(<<3::size(2), width::size(5), length::size(9), data::binary>>, signed? \\ false) do
     decoded_width = Orsimer.RLEv2.FiveBit.decode(width)
-    length = length + 1
 
     {base_value, rest} = varint(data, signed?)
     {delta_base, rest} = varint(rest, true)
 
-    bytes_to_read = Orsimer.Helper.bit_size_to_byte_size(decoded_width * (length - 2))
-    <<bytes::binary-size(bytes_to_read), remaining::binary>> = rest
+    case width == 0 do
+      true ->
+        integers =
+          Enum.reduce(1..length, [base_value], fn _, [prev | _] = acc ->
+            [prev + delta_base | acc]
+          end)
+          |> Enum.reverse()
 
-    sign = if delta_base >= 0, do: 1, else: -1
-    deltas = [delta_base] ++ get_deltas(bytes, decoded_width, length - 2, sign)
+        {integers, rest}
 
-    integers =
-      Enum.reduce(deltas, [base_value], fn delta, [prev | _] = acc ->
-        [prev + delta | acc]
-      end)
-      |> Enum.reverse()
+      false ->
+        sign = if delta_base >= 0, do: 1, else: -1
+        bytes_to_read = Orsimer.Helper.bit_size_to_byte_size(decoded_width * (length - 1))
+        <<bytes::binary-size(bytes_to_read), remaining::binary>> = rest
 
-    {integers, remaining}
+        deltas = [delta_base] ++ get_deltas(bytes, decoded_width, length - 1, sign)
+
+        integers =
+          Enum.reduce(deltas, [base_value], fn delta, [prev | _] = acc ->
+            [prev + delta | acc]
+          end)
+          |> Enum.reverse()
+
+        {integers, remaining}
+    end
+  end
+
+  defp build_header(width, length) do
+    <<3::size(2), width::size(5), length::size(9)>>
+  end
+
+  defp all_same?(list) do
+    first = List.first(list)
+    Enum.all?(list, fn element -> element == first end)
   end
 
   defp get_deltas(binary, width, count, sign) do

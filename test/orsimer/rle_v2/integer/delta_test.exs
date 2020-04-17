@@ -53,6 +53,19 @@ defmodule Orsimer.RLEv2.Integer.DeltaTest do
       assert Enum.take(integers, 512) == decoded
       assert Enum.drop(integers, 512) == remaining
     end
+
+    test "makes width zero and only uses the delta base when all deltas are the same" do
+      integers = 1..100 |> Enum.to_list()
+
+      {bytes, []} = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
+
+      base_value = Varint.Zigzag.encode(1) |> Varint.LEB128.encode()
+      delta_base = Varint.Zigzag.encode(1) |> Varint.LEB128.encode()
+
+      expected = <<3::size(2), 0::size(5), 99::size(9)>> <> base_value <> delta_base
+
+      assert bytes == expected
+    end
   end
 
   describe "decode" do
