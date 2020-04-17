@@ -1,4 +1,5 @@
 defmodule Orsimer.RLEv2.Integer.Direct do
+  @spec encode([integer()], boolean) :: {binary, [integer()]}
   def encode(input, signed? \\ false) do
     {integers_to_encode, remaining} = Enum.split(input, 512)
 
@@ -23,6 +24,7 @@ defmodule Orsimer.RLEv2.Integer.Direct do
     {Orsimer.Helper.pad_to_binary(bits), remaining}
   end
 
+  @spec decode(binary(), boolean()) :: {[integer()], binary}
   def decode(<<1::size(2), width::size(5), length::size(9), data::bitstring>>, signed? \\ false) do
     decoded_width = Orsimer.RLEv2.FiveBit.decode(width)
     length = length + 1

@@ -1,6 +1,7 @@
 defmodule Orsimer.RLEv2.Integer do
   alias Orsimer.RLEv2.Integer.{Delta, Direct}
 
+  @spec encode([integer()], boolean) :: binary
   def encode(integers, signed? \\ false, buffer \\ <<>>)
 
   def encode([], _signed?, buffer), do: buffer
@@ -10,6 +11,7 @@ defmodule Orsimer.RLEv2.Integer do
     encode(remaining, signed?, buffer <> binary)
   end
 
+  @spec decode(binary, boolean()) :: [integer()]
   def decode(binary, signed? \\ false, buffer \\ [])
 
   def decode(<<>>, _signed?, buffer), do: List.flatten(buffer)

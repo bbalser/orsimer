@@ -1,4 +1,5 @@
 defmodule Orsimer.RLEv2.Integer.Delta do
+  @spec encode([integer()], boolean) :: {binary, [integer()]}
   def encode(integers, signed? \\ false) do
     {integers_to_encode, remaining} = Enum.split(integers, 512)
 
@@ -33,6 +34,7 @@ defmodule Orsimer.RLEv2.Integer.Delta do
     {Orsimer.Helper.pad_to_binary(binary), remaining}
   end
 
+  @spec decode(binary(), boolean()) :: {[integer()], binary}
   def decode(<<3::size(2), width::size(5), length::size(9), data::binary>>, signed? \\ false) do
     decoded_width = Orsimer.RLEv2.FiveBit.decode(width)
 
