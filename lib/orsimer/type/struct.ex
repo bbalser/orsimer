@@ -35,12 +35,13 @@ defmodule Orsimer.Type.Struct do
     def streams(%{children: children}, data, column \\ 0) do
       children
       |> Enum.with_index(1)
-      |> Enum.reduce({[], []}, fn {child, index}, {streams, binaries} ->
+      |> Enum.reduce([], fn {child, index}, acc ->
         field_data = Enum.map(data, &Map.get(&1, child.name))
-        {child_streams, child_binaries} = Orsimer.Type.streams(child, field_data, column + index)
+        streams = Orsimer.Type.streams(child, field_data, column + index)
 
-        {List.flatten(streams ++ child_streams), List.flatten(binaries ++ child_binaries)}
+        [acc | streams]
       end)
+      |> List.flatten()
     end
   end
 end

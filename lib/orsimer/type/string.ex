@@ -24,7 +24,7 @@ defmodule Orsimer.Type.String do
         Orc.Proto.Stream.new(column: column, kind: :DATA, length: byte_size(compressed_data))
       ]
 
-      {streams, [compressed_length, compressed_data]}
+      {streams, [compressed_length, compressed_data], nil}
     end
   end
 end

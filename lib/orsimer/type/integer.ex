@@ -15,34 +15,26 @@ defmodule Orsimer.Type.Integer do
     end
 
     def streams(_t, data, column \\ 0) do
-      binary =
-        Orsimer.RLEv2.Integer.Direct.encode(data, true)
-        |> Orsimer.Compression.compress()
+      {row_index, streams} = Orsimer.RLEv2.Integer.encode(data, signed?: true)
 
-      stream = Orc.Proto.Stream.new(column: column, kind: :DATA, length: byte_size(binary))
+      index_binary = row_index |> Orc.Proto.RowIndex.encode() |> Orsimer.Compression.compress()
 
-      {[stream], [binary], [row_index(data)]}
-    end
+      index_stream = {
+        Orc.Proto.Stream.new(column: column, kind: :ROW_INDEX, length: byte_size(index_binary)),
+        index_binary
+      }
 
-    defp row_index(data) do
-      Orc.Proto.RowIndex.new(
-        entry: [
-          Orc.Proto.RowIndexEntry.new(
-            positions: [0, 0, 0],
-            statistics:
-              Orc.Proto.ColumnStatistics.new(
-                numberOfValues: length(data),
-                hasNull: false,
-                intStatistics:
-                  Orc.Proto.IntegerStatistics.new(
-                    minimum: Enum.min(data),
-                    maximum: Enum.max(data),
-                    sum: Enum.sum(data)
-                  )
-              )
-          )
-        ]
-      )
+      data_streams =
+        Enum.map(streams, fn {kind, binary} ->
+          compressed_binary = Orsimer.Compression.compress(binary)
+
+          stream =
+            Orc.Proto.Stream.new(column: column, kind: kind, length: byte_size(compressed_binary))
+
+          {stream, compressed_binary}
+        end)
+
+      [index_stream | data_streams]
     end
   end
 end
