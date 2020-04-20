@@ -1,6 +1,14 @@
 defmodule Orsimer do
 
-  def write(_schema, _data) do
+  @type stream_kind :: :ROW_INDEX | :PRESENT | :LENGTH | :DATA
+  @type stream :: binary
+
+  @type streams :: [{stream_kind, stream}]
+
+  def write(schema, data) do
+
+
+
   end
 
 

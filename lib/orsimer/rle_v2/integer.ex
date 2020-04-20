@@ -1,5 +1,7 @@
 defmodule Orsimer.RLEv2.Integer do
   alias Orsimer.RLEv2.Integer.{Delta, Direct}
+  @behaviour Orsimer.Encoder
+  @behaviour Orsimer.Decoder
 
   defmodule Row do
     defstruct positions: [0, 0, 0],
@@ -11,8 +13,10 @@ defmodule Orsimer.RLEv2.Integer do
   @chunk_size 512
   @row_size 10_000
 
-  @spec encode([integer()], boolean) :: binary
-  def encode(integers, signed? \\ false) do
+  @impl Orsimer.Encoder
+  def encode(integers, opts \\ []) do
+    signed? = Keyword.get(opts, :signed?, false)
+
     rows =
       integers
       |> Enum.chunk_every(@chunk_size)
@@ -37,7 +41,9 @@ defmodule Orsimer.RLEv2.Integer do
         )
       end)
 
-    {binary, indexes}
+    index = Orc.Proto.RowIndex.new(entry: indexes)
+
+    {index, [{:DATA, binary}]}
   end
 
   defp encode_chunks([], _signed?, _count, rows), do: Enum.reverse(rows)
@@ -78,19 +84,22 @@ defmodule Orsimer.RLEv2.Integer do
     encode_chunks(tail, signed?, new_count, [new_row | rows])
   end
 
-  @spec decode(binary, boolean(), list) :: [integer()]
-  def decode(binary, signed? \\ false, buffer \\ [])
-
-  def decode(<<>>, _signed?, buffer), do: List.flatten(buffer)
-
-  def decode(<<1::size(2), _::bitstring>> = binary, signed?, buffer) do
-    {integers, remaining} = Direct.decode(binary, signed?)
-    decode(remaining, signed?, [buffer | integers])
+  @impl Orsimer.Decoder
+  def decode([{:DATA, data_stream}], opts \\ []) do
+    signed? = Keyword.get(opts, :signed?, false)
+    do_decode(data_stream, signed?, [])
   end
 
-  def decode(<<3::size(2), _::bitstring>> = binary, signed?, buffer) do
+  defp do_decode(<<>>, _signed?, buffer), do: List.flatten(buffer)
+
+  defp do_decode(<<1::size(2), _::bitstring>> = binary, signed?, buffer) do
+    {integers, remaining} = Direct.decode(binary, signed?)
+    do_decode(remaining, signed?, [buffer | integers])
+  end
+
+  defp do_decode(<<3::size(2), _::bitstring>> = binary, signed?, buffer) do
     {integers, remaining} = Delta.decode(binary, signed?)
-    decode(remaining, signed?, [buffer | integers])
+    do_decode(remaining, signed?, [buffer | integers])
   end
 
   defp update_stats(%Row{} = row, integers) do
