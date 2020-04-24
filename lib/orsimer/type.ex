@@ -7,10 +7,4 @@ defprotocol Orsimer.Type do
 
   @spec column_encoding(t) :: [Orc.Proto.ColumnEncoding.t()]
   def column_encoding(t)
-
-  @spec streams(t, list()) :: [{Orc.Proto.Stream.t(), binary}]
-  def streams(t, data)
-
-  @spec streams(t, list(), non_neg_integer()) :: [{Orc.Proto.Stream.t(), binary}]
-  def streams(t, data, column)
 end

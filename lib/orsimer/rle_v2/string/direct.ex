@@ -10,7 +10,7 @@ defmodule Orsimer.RLEv2.String.Direct do
   end
 
   def decode(length_stream, data_stream) do
-    Orsimer.RLEv2.Integer.decode(length_stream)
+    Orsimer.RLEv2.Integer.decode([DATA: length_stream])
     |> Enum.map_reduce(data_stream, fn length, bytes ->
       <<value::binary-size(length), remaining::binary>> = bytes
       {value, remaining}

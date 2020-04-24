@@ -1,36 +1,26 @@
 defmodule Orsimer do
-  @type stream_kind :: :ROW_INDEX | :PRESENT | :LENGTH | :DATA
-  @type stream :: binary
-
-  @type streams :: [{stream_kind, stream}]
+  @type stream_kind :: :DATA | :LENGTH | :PRESENT
+  @type uncompressed_binary_stream :: binary
+  @type compressed_binary_stream :: binary
+  @type streams :: [{Orc.Proto.Stream.t(), compressed_binary_stream()}]
 
   def write(schema, data) do
-    streams = Orsimer.Type.streams(schema, data)
+    results = Orsimer.Encoder.encode(schema, data)
+    {index_streams, index_binary} = create_index_streams(results)
+    {data_streams, data_binary} = create_data_streams(results)
 
     stripe_footer =
       Orc.Proto.StripeFooter.new(
         columns: Orsimer.Type.column_encoding(schema),
-        streams: Enum.map(streams, fn {s, _b} -> s end)
+        streams: Enum.reverse(index_streams) ++ Enum.reverse(data_streams)
       )
       |> Orc.Proto.StripeFooter.encode()
       |> Orsimer.Compression.compress()
 
-    index_streams =
-      streams
-      |> Enum.filter(fn {s, _b} -> s.kind == :ROW_INDEX end)
-      |> Enum.map(fn {_s, b} -> b end)
-      |> Enum.join()
-
-    data_streams =
-      streams
-      |> Enum.reject(fn {s, _b} -> s.kind == :ROW_INDEX end)
-      |> Enum.map(fn {_s, b} -> b end)
-      |> Enum.join()
-
     stripe =
       Orc.Proto.StripeInformation.new(
-        indexLength: byte_size(index_streams),
-        dataLength: byte_size(data_streams),
+        indexLength: byte_size(index_binary),
+        dataLength: byte_size(data_binary),
         footerLength: byte_size(stripe_footer),
         numberOfRows: length(data),
         offset: 3
@@ -41,7 +31,7 @@ defmodule Orsimer do
         numberOfRows: length(data),
         rowIndexStride: 10_000,
         metadata: [],
-        statistics: [],
+        statistics: Orsimer.Statistics.calculate(schema, data),
         stripes: [stripe],
         types: Orsimer.Type.to_list(schema)
       )
@@ -60,12 +50,40 @@ defmodule Orsimer do
       |> Orc.Proto.PostScript.encode()
 
     "ORC" <>
-      index_streams <>
-      data_streams <>
+      index_binary <>
+      data_binary <>
       stripe_footer <>
       footer <>
       postscript <>
       <<byte_size(postscript)::size(8)>>
+  end
+
+  defp create_index_streams(results) do
+    results
+    |> Enum.reduce({[], <<>>}, fn result, {streams, binary} ->
+      compressed_binary =
+        result.index
+      |> Orc.Proto.RowIndex.encode()
+      |> Orsimer.Compression.compress()
+
+      stream = Orc.Proto.Stream.new(column: result.column, kind: :ROW_INDEX, length: byte_size(compressed_binary))
+
+      {[stream | streams], binary <> compressed_binary}
+    end)
+  end
+
+  defp create_data_streams(results) do
+    results
+    |> Enum.map(fn result -> Enum.zip(Stream.cycle([result.column]), result.data_streams) end)
+    |> List.flatten()
+    |> Enum.reduce({[], <<>>}, fn {column, {kind, bin}}, {streams, binary} ->
+      compressed_binary = Orsimer.Compression.compress(bin)
+
+      stream =
+        Orc.Proto.Stream.new(column: column, kind: kind, length: byte_size(compressed_binary))
+
+      {[stream | streams], binary <> compressed_binary}
+    end)
   end
 
   def to_bits(binary, list \\ [])

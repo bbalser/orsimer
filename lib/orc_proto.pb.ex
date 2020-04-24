@@ -398,7 +398,7 @@ defmodule Orc.Proto.ColumnEncoding do
         }
   defstruct [:kind, :dictionarySize, :bloomEncoding]
 
-  field :kind, 1, optional: true, type: Orc.Proto.ColumnEncoding.Kind, enum: true
+  field :kind, 1, required: true, type: Orc.Proto.ColumnEncoding.Kind, enum: true
   field :dictionarySize, 2, optional: true, type: :uint32
   field :bloomEncoding, 3, optional: true, type: :uint32
 end
@@ -464,7 +464,7 @@ defmodule Orc.Proto.Type do
         }
   defstruct [:kind, :subtypes, :fieldNames, :maximumLength, :precision, :scale, :attributes]
 
-  field :kind, 1, optional: true, type: Orc.Proto.Type.Kind, enum: true
+  field :kind, 1, required: true, type: Orc.Proto.Type.Kind, enum: true
   field :subtypes, 2, repeated: true, type: :uint32, packed: true
   field :fieldNames, 3, repeated: true, type: :string
   field :maximumLength, 4, optional: true, type: :uint32

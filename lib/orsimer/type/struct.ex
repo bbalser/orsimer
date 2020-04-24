@@ -30,18 +30,37 @@ defmodule Orsimer.Type.Struct do
       ]
       |> List.flatten()
     end
+  end
 
+  defimpl Orsimer.Encoder do
+    def encode(%{children: children}, data, opts \\ []) do
+      column = Keyword.get(opts, :column, 0)
 
-    def streams(%{children: children}, data, column \\ 0) do
       children
       |> Enum.with_index(1)
       |> Enum.reduce([], fn {child, index}, acc ->
         field_data = Enum.map(data, &Map.get(&1, child.name))
-        streams = Orsimer.Type.streams(child, field_data, column + index)
+        results = Orsimer.Encoder.encode(child, field_data, column: column + index)
 
-        [acc | streams]
+        [acc | results]
       end)
       |> List.flatten()
+    end
+  end
+
+  defimpl Orsimer.Statistics do
+    def calculate(%{children: children}, data) do
+      stats =
+        children
+        |> Enum.map(fn child ->
+          field_data = Enum.map(data, &Map.get(&1, child.name))
+          Orsimer.Statistics.calculate(child, field_data)
+        end)
+        |> List.flatten()
+
+      struct_stats = Orc.Proto.ColumnStatistics.new(numberOfValues: length(data))
+
+      [struct_stats | stats]
     end
   end
 end
