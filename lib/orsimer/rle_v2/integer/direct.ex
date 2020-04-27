@@ -1,11 +1,9 @@
 defmodule Orsimer.RLEv2.Integer.Direct do
   @spec encode([integer()], boolean) :: {binary, [integer()]}
   def encode(input, signed? \\ false) do
-    {integers_to_encode, remaining} = Enum.split(input, 512)
-
     integers =
       case signed? do
-        true -> Enum.map(integers_to_encode, &Varint.Zigzag.encode/1)
+        true -> Enum.map(input, &Varint.Zigzag.encode/1)
         false -> input
       end
 
@@ -21,7 +19,7 @@ defmodule Orsimer.RLEv2.Integer.Direct do
         <<acc::bitstring, int::size(width)>>
       end)
 
-    {Orsimer.Helper.pad_to_binary(bits), remaining}
+    Orsimer.Helper.pad_to_binary(bits)
   end
 
   @spec decode(binary(), boolean()) :: {[integer()], binary}

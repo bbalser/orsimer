@@ -74,8 +74,3 @@ defimpl Orsimer.Encoder, for: Orsimer.Type.Boolean do
     |> round()
   end
 end
-
-# TODO finish encoder/decoder for boolean then leverage it in the integer encoder
-# each stream can encode its own row and then combine the index positions
-
-# number of rows = div(length(list), @row_size) + 1

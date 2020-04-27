@@ -74,18 +74,15 @@ defmodule Orsimer.Encoder.IntegerTest do
 
     first_group =
       binary_part(binary_stream, start_one, start_two - start_one)
-      |> (fn b -> [{:DATA, b}] end).()
-      |> Orsimer.RLEv2.Integer.decode(true)
+      |> decode()
 
     second_group =
       binary_part(binary_stream, start_two, start_three - start_two)
-      |> (fn b -> [{:DATA, b}] end).()
-      |> Orsimer.RLEv2.Integer.decode(true)
+      |> decode()
 
     third_group =
       binary_part(binary_stream, start_three, byte_size(binary_stream) - start_three)
-      |> (fn b -> [{:DATA, b}] end).()
-      |> Orsimer.RLEv2.Integer.decode(true)
+      |> decode()
 
     assert first_group ++ Enum.take(second_group, consume_two) == Enum.take(integers, 10_000)
 
@@ -112,4 +109,9 @@ defmodule Orsimer.Encoder.IntegerTest do
       false -> :rand.uniform(max)
     end
   end
+
+  defp decode(binary) do
+    Orsimer.Decoder.decode(Orsimer.Type.Integer.new(), [DATA: binary], signed?: true)
+  end
+
 end

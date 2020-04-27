@@ -26,6 +26,15 @@ defmodule Orsimer do
         offset: 3
       )
 
+    metadata =
+      Orc.Proto.Metadata.new(
+        stripeStats: [
+          Orc.Proto.StripeStatistics.new(colStats: Orsimer.Statistics.calculate(schema, data))
+        ]
+      )
+      |> Orc.Proto.Metadata.encode()
+      |> Orsimer.Compression.compress()
+
     footer =
       Orc.Proto.Footer.new(
         numberOfRows: length(data),
@@ -43,7 +52,7 @@ defmodule Orsimer do
         compression: :ZLIB,
         compressionBlockSize: 262_144,
         footerLength: byte_size(footer),
-        metadataLengt: 0,
+        metadataLength: byte_size(metadata),
         version: [0, 12],
         writerVersion: 1
       )
@@ -53,6 +62,7 @@ defmodule Orsimer do
       index_binary <>
       data_binary <>
       stripe_footer <>
+      metadata <>
       footer <>
       postscript <>
       <<byte_size(postscript)::size(8)>>
@@ -63,10 +73,15 @@ defmodule Orsimer do
     |> Enum.reduce({[], <<>>}, fn result, {streams, binary} ->
       compressed_binary =
         result.index
-      |> Orc.Proto.RowIndex.encode()
-      |> Orsimer.Compression.compress()
+        |> Orc.Proto.RowIndex.encode()
+        |> Orsimer.Compression.compress()
 
-      stream = Orc.Proto.Stream.new(column: result.column, kind: :ROW_INDEX, length: byte_size(compressed_binary))
+      stream =
+        Orc.Proto.Stream.new(
+          column: result.column,
+          kind: :ROW_INDEX,
+          length: byte_size(compressed_binary)
+        )
 
       {[stream | streams], binary <> compressed_binary}
     end)
