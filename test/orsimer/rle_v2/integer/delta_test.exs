@@ -5,7 +5,7 @@ defmodule Orsimer.RLEv2.Integer.DeltaTest do
     test "encodes some data" do
       integers = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]
 
-      {bytes, []} = Orsimer.RLEv2.Integer.Delta.encode(integers, false)
+      bytes = Orsimer.RLEv2.Integer.Delta.encode(integers, false)
 
       <<encoding::size(2), width::size(5), length::size(9), rest::binary>> = bytes
 
@@ -25,7 +25,7 @@ defmodule Orsimer.RLEv2.Integer.DeltaTest do
     test "encodes data as signed integers" do
       integers = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]
 
-      {bytes, []} = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
+      bytes = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
 
       <<_::binary-size(2), rest::binary>> = bytes
 
@@ -39,25 +39,15 @@ defmodule Orsimer.RLEv2.Integer.DeltaTest do
     test "pads out encoded values to binary" do
       integers = [1, 2, 4]
 
-      {bytes, []} = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
+      bytes = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
 
       assert is_binary(bytes)
-    end
-
-    test "encodes first 512 values and returns remaining" do
-      integers = Enum.to_list(1..513)
-
-      {bytes, remaining} = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
-      assert {decoded, <<>>} = Orsimer.RLEv2.Integer.Delta.decode(bytes, true)
-
-      assert Enum.take(integers, 512) == decoded
-      assert Enum.drop(integers, 512) == remaining
     end
 
     test "makes width zero and only uses the delta base when all deltas are the same" do
       integers = 1..100 |> Enum.to_list()
 
-      {bytes, []} = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
+      bytes = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
 
       base_value = Varint.Zigzag.encode(1) |> Varint.LEB128.encode()
       delta_base = Varint.Zigzag.encode(1) |> Varint.LEB128.encode()
@@ -72,7 +62,7 @@ defmodule Orsimer.RLEv2.Integer.DeltaTest do
     test "decodes data stream into integers" do
       integers = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]
 
-      {bytes, []} = Orsimer.RLEv2.Integer.Delta.encode(integers)
+      bytes = Orsimer.RLEv2.Integer.Delta.encode(integers)
 
       assert {integers, <<>>} == Orsimer.RLEv2.Integer.Delta.decode(bytes)
     end
@@ -80,7 +70,7 @@ defmodule Orsimer.RLEv2.Integer.DeltaTest do
     test "decodes data stream into signed integers" do
       integers = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]
 
-      {bytes, []} = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
+      bytes = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
 
       assert {integers, <<>>} == Orsimer.RLEv2.Integer.Delta.decode(bytes, true)
     end
@@ -88,7 +78,7 @@ defmodule Orsimer.RLEv2.Integer.DeltaTest do
     test "decodes data stream of signed integers going in negative direction" do
       integers = [-2, -3, -5, -7, -11, -13, -17, -19, -23, -29]
 
-      {bytes, []} = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
+      bytes = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
 
       assert {integers, <<>>} == Orsimer.RLEv2.Integer.Delta.decode(bytes, true)
     end
@@ -96,7 +86,7 @@ defmodule Orsimer.RLEv2.Integer.DeltaTest do
     test "decodes padded integers" do
       integers = [1, 2, 4]
 
-      {bytes, []} = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
+      bytes = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
 
       {decoded, <<>>} = Orsimer.RLEv2.Integer.Delta.decode(bytes, true)
 
@@ -106,7 +96,7 @@ defmodule Orsimer.RLEv2.Integer.DeltaTest do
     test "returns remaining bytes" do
       integers = Enum.to_list(1..512)
 
-      {bytes, _} = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
+      bytes = Orsimer.RLEv2.Integer.Delta.encode(integers, true)
       assert {decoded, <<4, 5, 1>>} = Orsimer.RLEv2.Integer.Delta.decode(bytes <> <<4, 5, 1>>, true)
 
       assert decoded == integers

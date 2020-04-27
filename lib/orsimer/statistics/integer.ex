@@ -1,5 +1,8 @@
 defimpl Orsimer.Statistics, for: Orsimer.Type.Integer do
-  def calculate(_t, [head | tail] = list) do
+  def calculate(_t, list) do
+
+    [head | tail] = Enum.reject(list, &is_nil/1)
+
     {min, max, sum} =
       Enum.reduce(tail, {head, head, head}, fn i, {min, max, sum} ->
         {min(min, i), max(max, i), sum + i}

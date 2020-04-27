@@ -6,7 +6,7 @@ defimpl Orsimer.Encoder, for: Orsimer.Type.Integer do
   def chunk_size(), do: 512
 
   def create_chunk_encoder(opts) do
-    signed? = Keyword.get(opts, :signed?, false)
+    signed? = Keyword.get(opts, :signed?, true)
 
     fn chunk ->
       Direct.encode(chunk, signed?)

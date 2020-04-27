@@ -1,10 +1,8 @@
 defmodule Orsimer.RLEv2.Integer.Delta do
   @spec encode([integer()], boolean) :: {binary, [integer()]}
   def encode(integers, signed? \\ false) do
-    {integers_to_encode, remaining} = Enum.split(integers, 512)
-
     deltas =
-      Enum.chunk_every(integers_to_encode, 2, 1, :discard)
+      Enum.chunk_every(integers, 2, 1, :discard)
       |> Enum.map(fn [a, b] -> b - a end)
 
     width = Orsimer.Helper.minimum_bits(deltas)
@@ -31,7 +29,7 @@ defmodule Orsimer.RLEv2.Integer.Delta do
           )
       end
 
-    {Orsimer.Helper.pad_to_binary(binary), remaining}
+    Orsimer.Helper.pad_to_binary(binary)
   end
 
   @spec decode(binary(), boolean()) :: {[integer()], binary}

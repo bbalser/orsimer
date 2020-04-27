@@ -382,7 +382,7 @@ defmodule Orc.Proto.Stream do
         }
   defstruct [:kind, :column, :length]
 
-  field :kind, 1, optional: true, type: Orc.Proto.Stream.Kind, enum: true
+  field :kind, 1, required: true, type: Orc.Proto.Stream.Kind, enum: true
   field :column, 2, optional: true, type: :uint32
   field :length, 3, optional: true, type: :uint64
 end
