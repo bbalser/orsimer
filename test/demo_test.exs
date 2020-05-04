@@ -2,6 +2,12 @@ defmodule DemoTest do
   use ExUnit.Case
   use Divo
 
+  setup do
+    Process.sleep(5_000)
+
+    :ok
+  end
+
   test "stuffy" do
     session =
       Prestige.new_session(
@@ -11,14 +17,26 @@ defmodule DemoTest do
         schema: "default"
       )
 
-    assert {:ok, _} = Prestige.execute(session, "CREATE TABLE users(name varchar, age integer, alive boolean)")
+    assert {:ok, _} =
+             Prestige.execute(
+               session,
+               "CREATE TABLE users(name varchar, age integer, alive boolean)"
+             )
 
     data =
-      Enum.map(1..3, fn i ->
-        %{"name" => "joe", "age" => random_number(), "alive" => random_boolean(i)}
+      Enum.map(1..22_000, fn i ->
+        %{
+          "name" => random_string(21),
+          "age" => random_number(nil?: false),
+          "alive" => random_boolean(i)
+        }
       end)
+      |> (fn data ->
+            [head | tail] = data
+            data = [%{head | "name" => nil} | tail]
+          end).()
       |> Enum.map(fn row ->
-        "('#{row["name"]}', #{row["age"]}, #{row["alive"]})"
+        "(#{value(row["name"])}, #{value(row["age"])}, #{value(row["alive"])})"
       end)
       |> Enum.join(",")
 
@@ -38,6 +56,11 @@ defmodule DemoTest do
     |> ExAws.request!()
   end
 
+  defp value(nil), do: "NULL"
+  defp value(integer) when is_integer(integer), do: integer
+  defp value(boolean) when is_boolean(boolean), do: boolean
+  defp value(value), do: "'#{value}'"
+
   defp random_number(opts \\ []) do
     max = Keyword.get(opts, :max, 1_000)
     nils? = Keyword.get(opts, :nil?, true)
@@ -51,6 +74,10 @@ defmodule DemoTest do
   end
 
   defp random_boolean(i) do
-    rem(i,2) == 0
+    rem(i, 2) == 0
+  end
+
+  defp random_string(length) do
+    :crypto.strong_rand_bytes(length) |> Base.url_encode64() |> binary_part(0, length)
   end
 end

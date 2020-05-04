@@ -13,7 +13,9 @@ defmodule Orsimer.Encoder.BooleanTest do
     [{:DATA, binary_stream}] = result.data_streams
 
     actual =
-      Stream.unfold(binary_stream, fn
+      binary_stream
+      |> Orsimer.Compression.decompress()
+      |> Stream.unfold(fn
         <<>> -> nil
         binary -> Orsimer.RLE.Boolean.decode(binary)
       end)

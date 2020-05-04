@@ -42,6 +42,17 @@ defmodule Orsimer.CompresstionTest do
 
       assert input == Orsimer.Compression.decompress(compressed_chunk)
     end
+
+    test "will decompress multiple chunks" do
+      input = [
+        "one is the best number, two is the loneliest number",
+        "the quick brown fox jumps over the lazy dog"
+        ]
+
+      compressed = Enum.map(input, &Orsimer.Compression.compress/1) |> Enum.join()
+
+      assert Enum.join(input) == Orsimer.Compression.decompress(compressed)
+    end
   end
 
   defp random_string(length) do

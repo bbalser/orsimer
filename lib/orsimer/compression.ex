@@ -1,4 +1,5 @@
 defmodule Orsimer.Compression do
+  #TODO only create compressed chunk up to compressed block size
   def compress(input) do
     compressed_data = Orsimer.Compression.Zlib.zip(input)
     compressed_byte_size = byte_size(compressed_data)
@@ -13,11 +14,23 @@ defmodule Orsimer.Compression do
     end
   end
 
-  def decompress(<<_::size(7), 1::size(1), _::size(16), body::binary>>) do
-    body
+  def decompress(compressed, buffer \\ <<>>)
+
+  def decompress(<<>>, buffer), do: buffer
+
+  def decompress(<<_::size(7), 1::size(1), _::binary>> = binary, buffer) do
+    <<header::size(24)-little, body::binary>> = binary
+
+    length = div(header-1, 2)
+    <<original::binary-size(length), remaining::binary>> = body
+    decompress(remaining, buffer <> original)
   end
 
-  def decompress(<<_header::size(24), body::binary>>) do
-    Orsimer.Compression.Zlib.unzip(body)
+  def decompress(<<header::size(24)-little, body::binary>>, buffer) do
+    length = div(header, 2)
+
+    <<compressed::binary-size(length), remaining::binary>> = body
+
+    decompress(remaining, buffer <> Orsimer.Compression.Zlib.unzip(compressed))
   end
 end

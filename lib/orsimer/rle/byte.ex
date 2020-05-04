@@ -1,4 +1,13 @@
 defmodule Orsimer.RLE.Byte do
+  @moduledoc """
+  Run Length encoder for bytes
+
+  Only encodes using literals
+
+  Can decode either run or literal encoding
+
+  Max values of 128 bytes can be stored in single chunk
+  """
 
   def encode(bytes) do
     length = - byte_size(bytes)

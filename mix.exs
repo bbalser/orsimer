@@ -7,7 +7,9 @@ defmodule Orsimer.MixProject do
       version: "0.1.0",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      elixirc_paths: elixirc_paths(Mix.env()),
+      consolidate_protocols: Mix.env() != :test
     ]
   end
 
@@ -30,4 +32,7 @@ defmodule Orsimer.MixProject do
       {:faker, "~> 0.13.0", only: [:dev, :test]}
     ]
   end
+
+  defp elixirc_paths(:test), do: ["test/support", "lib"]
+  defp elixirc_paths(_), do: ["lib"]
 end
